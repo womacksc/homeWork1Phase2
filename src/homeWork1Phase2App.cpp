@@ -18,10 +18,13 @@ class homeWork1Phase2App : public AppBasic {
 	void update();
 	void draw();
     void prepareSettings(Settings* settings);
+	void mouseDrag( MouseEvent event );
+	void mouseWheel( MouseEvent event );
 
 	private:
 		Surface* surface_;
 		int numFrames;
+		int drawSize_;
 
 		struct circle{
 			int x;
@@ -46,6 +49,7 @@ class homeWork1Phase2App : public AppBasic {
 
 	void drawGradient(uint8_t* pixels, int shift);
 	void drawSquare(uint8_t* pixels, square s, Color8u c);
+	void drawCircle(uint8_t* pixels, circle s, Color8u c);
 
 };
 
@@ -58,26 +62,55 @@ void homeWork1Phase2App::setup()
 {
 		surface_ = new Surface(kTextureSize,kTextureSize,false);
 		numFrames = 0;
-		square test;
-		
-		for(int i=0; i<20; i++){
-			test.x = 20+i*10;
-			test.y = 40+i*10;
-			test.w = 20;
-			squares_.push_back(test); 
-		}
+		drawSize_ = 50;
 }
 
 void homeWork1Phase2App::mouseDown( MouseEvent event )
-{	
-		
+{	/*square s;
+	if(event.isLeftDown()){
+		s.x = event.getX();
+		s.y = event.getY();
+		s.w = 30;
+		squares_.push_back(s); 
+		if(squares_.size()>20)
+			squares_.pop_front();
+	}*/
+}
+
+void homeWork1Phase2App::mouseDrag( MouseEvent event )
+{	square s;
+	circle cir;
+
+	if(event.isLeftDown()){
+		s.x = event.getX();
+		s.y = event.getY();
+		s.w = drawSize_;
+		squares_.push_back(s); 
+		if(squares_.size()>50)
+			squares_.pop_front();
+	}
+
+	if(event.isRightDown()){
+		cir.x = event.getX();
+		cir.y = event.getY();
+		cir.r = drawSize_;
+		circles_.push_back(cir); 
+		if(circles_.size()>50)
+			circles_.pop_front();
+	}
+}
+
+void homeWork1Phase2App::mouseWheel( MouseEvent event ){
+	float wheel = event.getWheelIncrement();
+
+	drawSize_ +=((int)wheel)*10;
 }
 
 void homeWork1Phase2App::drawGradient(uint8_t* pixels, int shift){
 	Colorf red = Colorf(1,0,0);
 	Colorf blue = Colorf(0,0,1);
 
-	Colorf lineColor;
+	Color8u lineColor;
 	int bla = kAppHeight/2;
 	float increment = 255.0f/((float)bla);
 
@@ -112,16 +145,39 @@ void homeWork1Phase2App::drawSquare(uint8_t* pixels, square s, Color8u c){
 	}
 }
 
+void homeWork1Phase2App::drawCircle(uint8_t* pixels, circle cir, Color8u c){
+	int function;
+	if(cir.r<=0) return;
+
+	for(int y=cir.y-cir.r; y<=cir.y+cir.r; y++){
+		for(int x=cir.x-cir.r; x<=cir.x+cir.r; x++){
+			if(y < 0 || x < 0 || x >= kAppWidth || y >= kAppHeight) continue;
+			function = (int)sqrt((double)((x-cir.x)*(x-cir.x) + (y-cir.y)*(y-cir.y)));
+			if(function<= cir.r){
+				if(function>cir.r/2-1 && function<cir.r/2+1){
+					pixels[3*(x + y*kTextureSize)] = c.r;
+					pixels[3*(x + y*kTextureSize)+1] = c.g;
+					pixels[3*(x + y*kTextureSize)+2] = c.b;
+				}
+			}
+		}
+	}
+}
+
+
 void homeWork1Phase2App::update()
-{
+{	
 	uint8_t* dataArray = (*surface_).getData();
 
 	drawGradient(dataArray, (numFrames*5)%kAppHeight);
 
-	for(int i=0; i<squares_.size(); i++){
+	for(uint8_t i=0; i<squares_.size(); i++){
 		drawSquare(dataArray, squares_[i], Color8u(0, 255, 0));
 	}
 
+	for(uint8_t i=0; i<circles_.size(); i++){
+		drawCircle(dataArray, circles_[i], Color8u(0, 255, 0));
+	}
 	numFrames++;
 }
 
