@@ -6,6 +6,7 @@
 #include "Resources.h"
 #include <cmath>
 #include <vector>
+#include <time.h>
 
 using namespace ci;
 using namespace ci::app;
@@ -20,11 +21,12 @@ class homeWork1Phase2App : public AppBasic {
     void prepareSettings(Settings* settings);
 	void mouseDrag( MouseEvent event );
 	void mouseWheel( MouseEvent event );
+	void keyDown( KeyEvent event );
 
 	private:
 		Surface* surface_;
-		int numFrames;
-		int drawSize_;
+		int numFrames, drawSize_, mouseX_, mouseY_;
+		bool blurFlag_;
 		Color8u squareColor_;
 		Color8u circleColor_;
 		uint8_t tintValue_;
@@ -53,6 +55,7 @@ class homeWork1Phase2App : public AppBasic {
 	void drawGradient(uint8_t* pixels, int shift);
 	void drawSquare(uint8_t* pixels, square s, Color8u c);
 	void drawCircle(uint8_t* pixels, circle s, Color8u c);
+	void blur(uint8_t* pixels);
 
 };
 
@@ -65,10 +68,14 @@ void homeWork1Phase2App::setup()
 {		surface_ = new Surface(kTextureSize,kTextureSize,false);
 		numFrames = 0;
 		drawSize_ = 50;
+		srand ( time(NULL) );
 		squareColor_ = Color8u(255*rand(),255*rand(),255*rand()) ;
 		circleColor_ = Color8u(255*rand(),255*rand(),255*rand()) ;
 		tintValue_ = 0;
-}
+		blurFlag_ = false;
+		mouseX_ = -100; 
+		mouseY_ = -100;
+}		  
 
 void homeWork1Phase2App::mouseDown( MouseEvent event )
 {
@@ -78,13 +85,19 @@ void homeWork1Phase2App::mouseDown( MouseEvent event )
 void homeWork1Phase2App::mouseDrag( MouseEvent event )
 {	square s;
 	circle cir;
+	int const knumShapes = 50; 
+	int const minMove = 10;
 
 	if(event.isLeftDown()){
-		s.x = event.getX();
-		s.y = event.getY();
+			s.x = event.getX();
+			s.y = event.getY();
 		s.w = drawSize_;
-		squares_.push_back(s); 
-		if(squares_.size()>50)
+		if(abs(event.getX()-mouseX_)>minMove||abs(event.getY()-mouseY_)>minMove){
+			squares_.push_back(s); 
+			mouseY_ = s.y;
+			mouseX_ = s.x;
+		}
+		if(squares_.size()>knumShapes)
 			squares_.pop_front();
 	}
 
@@ -92,8 +105,12 @@ void homeWork1Phase2App::mouseDrag( MouseEvent event )
 		cir.x = event.getX();
 		cir.y = event.getY();
 		cir.r = drawSize_;
-		circles_.push_back(cir); 
-		if(circles_.size()>50)
+		if(abs(event.getX()-mouseX_)>minMove||abs(event.getY()-mouseY_)>minMove){
+			circles_.push_back(cir);
+			mouseY_ = cir.y;
+			mouseX_ = cir.x;
+		}
+		if(circles_.size()>knumShapes)
 			circles_.pop_front();
 	}
 }
@@ -114,6 +131,12 @@ void homeWork1Phase2App::mouseWheel( MouseEvent event ){
 		drawSize_ +=((int)wheel)*10;
 
 	
+}
+
+void homeWork1Phase2App::keyDown( KeyEvent event ) {
+    if( event.getChar() == 'b' )
+		blurFlag_ = !blurFlag_;
+     
 }
 
 void homeWork1Phase2App::drawGradient(uint8_t* pixels, int shift){
@@ -175,7 +198,39 @@ void homeWork1Phase2App::drawCircle(uint8_t* pixels, circle cir, Color8u c){
 	}
 }
 
+void homeWork1Phase2App::blur(uint8_t* pixels){
+	//Following 2 lines stolen from Dr. Brinkman
+	static uint8_t workCopy[3*kTextureSize*kTextureSize];
+	memcpy(workCopy,pixels,3*kTextureSize*kTextureSize);
 
+	int offset[9];
+
+	for(int y=1;y<kAppHeight-1;y++){
+		for(int x=1;x<kAppWidth-1;x++){
+			offset[0] = 3*((x-1) + (y-1)*kTextureSize);
+			offset[1] = 3*(x + (y-1)*kTextureSize);
+			offset[2] = 3*((x+1) + (y-1)*kTextureSize);
+			offset[3] = 3*((x-1) + y*kTextureSize);
+			offset[4] = 3*(x + y*kTextureSize);
+			offset[5] = 3*((x+1) + y*kTextureSize);
+			offset[6] = 3*((x-1) + (y+1)*kTextureSize);
+			offset[7] = 3*(x + (y+1)*kTextureSize);
+			offset[8] = 3*((x+1) + (y+1)*kTextureSize);
+
+			pixels[offset[4]] = (workCopy[offset[0]]+workCopy[offset[1]]+workCopy[offset[2]]+
+				workCopy[offset[3]]+workCopy[offset[4]]+workCopy[offset[5]]+
+				workCopy[offset[6]]+workCopy[offset[7]]+workCopy[offset[8]])/9;
+
+			pixels[offset[4]+1] = (workCopy[offset[0]+1]+workCopy[offset[1]+1]+workCopy[offset[2]+1]+
+				workCopy[offset[3]+1]+workCopy[offset[4]+1]+workCopy[offset[5]+1]+
+				workCopy[offset[6]+1]+workCopy[offset[7]+1]+workCopy[offset[8]+1])/9;
+
+			pixels[offset[4]+2] = (workCopy[offset[0]+2]+workCopy[offset[1]+2]+workCopy[offset[2]+2]+
+				workCopy[offset[3]+2]+workCopy[offset[4]+2]+workCopy[offset[5]+2]+
+				workCopy[offset[6]+2]+workCopy[offset[7]+2]+workCopy[offset[8]+2])/9;
+		}
+	}
+}
 
 void homeWork1Phase2App::update()
 {	
@@ -190,6 +245,10 @@ void homeWork1Phase2App::update()
 	for(uint8_t i=0; i<circles_.size(); i++){
 		drawCircle(dataArray, circles_[i], circleColor_);
 	}
+
+	if(blurFlag_)
+		blur(dataArray);
+
 	numFrames++;
 }
 
