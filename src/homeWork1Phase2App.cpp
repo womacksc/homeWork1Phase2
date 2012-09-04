@@ -25,6 +25,9 @@ class homeWork1Phase2App : public AppBasic {
 		Surface* surface_;
 		int numFrames;
 		int drawSize_;
+		Color8u squareColor_;
+		Color8u circleColor_;
+		uint8_t tintValue_;
 
 		struct circle{
 			int x;
@@ -59,22 +62,17 @@ void homeWork1Phase2App::prepareSettings(Settings* settings){
 }
 
 void homeWork1Phase2App::setup()
-{
-		surface_ = new Surface(kTextureSize,kTextureSize,false);
+{		surface_ = new Surface(kTextureSize,kTextureSize,false);
 		numFrames = 0;
 		drawSize_ = 50;
+		squareColor_ = Color8u(255*rand(),255*rand(),255*rand()) ;
+		circleColor_ = Color8u(255*rand(),255*rand(),255*rand()) ;
+		tintValue_ = 0;
 }
 
 void homeWork1Phase2App::mouseDown( MouseEvent event )
-{	/*square s;
-	if(event.isLeftDown()){
-		s.x = event.getX();
-		s.y = event.getY();
-		s.w = 30;
-		squares_.push_back(s); 
-		if(squares_.size()>20)
-			squares_.pop_front();
-	}*/
+{
+
 }
 
 void homeWork1Phase2App::mouseDrag( MouseEvent event )
@@ -102,8 +100,20 @@ void homeWork1Phase2App::mouseDrag( MouseEvent event )
 
 void homeWork1Phase2App::mouseWheel( MouseEvent event ){
 	float wheel = event.getWheelIncrement();
+	int temp;
+	
 
-	drawSize_ +=((int)wheel)*10;
+	if(event.isShiftDown()){
+		temp = ((int)tintValue_)+((int)wheel)*5;
+		if((temp<255&&wheel>0)||(temp>0&&wheel<0))
+			tintValue_ = (uint8_t)temp;
+	squareColor_.g = tintValue_;
+	circleColor_.g = tintValue_;
+	}
+	else
+		drawSize_ +=((int)wheel)*10;
+
+	
 }
 
 void homeWork1Phase2App::drawGradient(uint8_t* pixels, int shift){
@@ -111,6 +121,7 @@ void homeWork1Phase2App::drawGradient(uint8_t* pixels, int shift){
 	Colorf blue = Colorf(0,0,1);
 
 	Color8u lineColor;
+	lineColor.g = tintValue_;
 	int bla = kAppHeight/2;
 	float increment = 255.0f/((float)bla);
 
@@ -165,6 +176,7 @@ void homeWork1Phase2App::drawCircle(uint8_t* pixels, circle cir, Color8u c){
 }
 
 
+
 void homeWork1Phase2App::update()
 {	
 	uint8_t* dataArray = (*surface_).getData();
@@ -172,11 +184,11 @@ void homeWork1Phase2App::update()
 	drawGradient(dataArray, (numFrames*5)%kAppHeight);
 
 	for(uint8_t i=0; i<squares_.size(); i++){
-		drawSquare(dataArray, squares_[i], Color8u(0, 255, 0));
+		drawSquare(dataArray, squares_[i], squareColor_);
 	}
 
 	for(uint8_t i=0; i<circles_.size(); i++){
-		drawCircle(dataArray, circles_[i], Color8u(0, 255, 0));
+		drawCircle(dataArray, circles_[i], circleColor_);
 	}
 	numFrames++;
 }
