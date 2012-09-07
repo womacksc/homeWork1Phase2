@@ -167,18 +167,19 @@ void homeWork1Phase2App::mouseDrag( MouseEvent event )
 }
 
 void homeWork1Phase2App::mouseWheel( MouseEvent event ){
-	float wheel = event.getWheelIncrement();
-	int temp;
+	int wheel = event.getWheelIncrement();
+	uint8_t temp;
 	
+	///Shift button must be held down while wheel turns
 	if(event.isShiftDown()){
-		temp = ((int)tintValue_)+((int)wheel)*5;
+		temp = (tintValue_)+ ((uint8_t)wheel)*5;
 		if((temp<255&&wheel>0)||(temp>0&&wheel<0))
-			tintValue_ = (uint8_t)temp;
+			tintValue_ = temp;
 	squareColor_.g = tintValue_;
 	circleColor_.g = tintValue_;
 	}
 	else
-		drawSize_ +=((int)wheel)*10;
+		drawSize_ += wheel*10;
 }
 
 void homeWork1Phase2App::keyDown( KeyEvent event ) {
@@ -294,7 +295,7 @@ void homeWork1Phase2App::update()
 	}
 
 	if(blurFlag_)
-		blur(dataArray);
+		blur(dataArray);  /// "B" button turns on/off blur
 
 	numFrames_++;
 }
